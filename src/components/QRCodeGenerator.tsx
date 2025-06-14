@@ -8,10 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Download, Upload, Palette, Square, Dot, Image as ImageIcon } from 'lucide-react';
+import { Download, Upload, Palette, Square, Dot, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 
 type DotType = 'square' | 'dots' | 'rounded' | 'extra-rounded' | 'classy' | 'classy-rounded';
+type CornerSquareType = 'dot' | 'square' | 'extra-rounded';
+type CornerDotType = 'dot' | 'square';
+type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
 
 export default function QRCodeGenerator() {
   const [options, setOptions] = useState<QRCodeOptions>({
@@ -29,7 +33,19 @@ export default function QRCodeGenerator() {
     },
     imageOptions: {
       crossOrigin: 'anonymous',
-      margin: 10
+      margin: 10,
+      hideBackgroundDots: true,
+    },
+    cornersSquareOptions: {
+      type: 'extra-rounded',
+      color: '#000000'
+    },
+    cornersDotOptions: {
+      type: 'dot',
+      color: '#000000'
+    },
+    qrOptions: {
+      errorCorrectionLevel: 'Q'
     }
   });
 
@@ -83,6 +99,32 @@ export default function QRCodeGenerator() {
     }
   };
 
+  const onRemoveImage = () => {
+    setOptions(prev => ({ ...prev, image: '' }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const onImageOptionChange = (key: keyof QRCodeOptions['imageOptions'], value: any) => {
+    setOptions(prev => ({ ...prev, imageOptions: { ...prev.imageOptions, [key]: value } }));
+  };
+
+  const onQrOptionsChange = (value: ErrorCorrectionLevel) => {
+    setOptions(prev => ({ ...prev, qrOptions: { ...prev.qrOptions, errorCorrectionLevel: value } }));
+  };
+
+  const onCornersOptionsChange = (
+    cornerType: 'cornersSquareOptions' | 'cornersDotOptions',
+    option: 'type' | 'color',
+    value: string
+  ) => {
+    setOptions(prev => ({
+      ...prev,
+      [cornerType]: { ...prev[cornerType], [option]: value }
+    }));
+  };
+
   const handleDownload = () => {
     qrCode.download({
       extension: fileExt
@@ -97,7 +139,7 @@ export default function QRCodeGenerator() {
           <CardTitle className="text-2xl font-bold tracking-tight">Customize QR Code</CardTitle>
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
+          <Accordion type="multiple" defaultValue={['item-1', 'item-2', 'item-3']} className="w-full">
             <AccordionItem value="item-1">
               <AccordionTrigger className="text-lg font-semibold">Content</AccordionTrigger>
               <AccordionContent className="space-y-4 pt-4">
@@ -107,10 +149,27 @@ export default function QRCodeGenerator() {
                 </div>
                  <div className="space-y-2">
                   <Label>Logo Image</Label>
-                  <Input type="file" id="image" ref={fileInputRef} onChange={onImageUpload} className="hidden" accept="image/*" />
-                  <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
-                    <Upload className="mr-2 h-4 w-4" /> Upload Image
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Input type="file" id="image" ref={fileInputRef} onChange={onImageUpload} className="hidden" accept="image/*" />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full">
+                      <Upload className="mr-2 h-4 w-4" /> Upload Image
+                    </Button>
+                    {options.image && (
+                      <Button variant="destructive" size="icon" onClick={onRemoveImage}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm bg-background/50">
+                  <div className="space-y-0.5">
+                    <Label>Hide background dots</Label>
+                  </div>
+                  <Switch
+                    checked={options.imageOptions?.hideBackgroundDots}
+                    onCheckedChange={(checked) => onImageOptionChange('hideBackgroundDots', checked)}
+                    disabled={!options.image}
+                  />
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -124,6 +183,20 @@ export default function QRCodeGenerator() {
                 <div className="space-y-2">
                   <Label htmlFor="margin">Margin (px)</Label>
                   <Input id="margin" type="number" value={options.margin} onChange={onMarginChange} min="0" max="100" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="error-correction">Error Correction</Label>
+                  <Select onValueChange={onQrOptionsChange} defaultValue={options.qrOptions?.errorCorrectionLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="L">Low</SelectItem>
+                      <SelectItem value="M">Medium</SelectItem>
+                      <SelectItem value="Q">Quartile</SelectItem>
+                      <SelectItem value="H">High</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dots-type">Dots Style</Label>
@@ -155,6 +228,50 @@ export default function QRCodeGenerator() {
                     <Input id="bg-color" type="color" value={options.backgroundOptions?.color} onChange={onBgColorChange} className="pl-10" />
                   </div>
                 </div>
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-3">
+              <AccordionTrigger className="text-lg font-semibold">Corner Styling</AccordionTrigger>
+              <AccordionContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="corners-square-type">Corner Square Style</Label>
+                      <Select onValueChange={(v: CornerSquareType) => onCornersOptionsChange('cornersSquareOptions', 'type', v)} defaultValue={options.cornersSquareOptions?.type}>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select corner square style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="dot">Dot</SelectItem>
+                              <SelectItem value="square">Square</SelectItem>
+                              <SelectItem value="extra-rounded">Extra Rounded</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="corners-square-color">Corner Square Color</Label>
+                      <div className="relative">
+                          <Palette className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="corners-square-color" type="color" value={options.cornersSquareOptions?.color} onChange={(e) => onCornersOptionsChange('cornersSquareOptions', 'color', e.target.value)} className="pl-10" />
+                      </div>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="corners-dot-type">Corner Dot Style</Label>
+                      <Select onValueChange={(v: CornerDotType) => onCornersOptionsChange('cornersDotOptions', 'type', v)} defaultValue={options.cornersDotOptions?.type}>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select corner dot style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="dot">Dot</SelectItem>
+                              <SelectItem value="square">Square</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="corners-dot-color">Corner Dot Color</Label>
+                      <div className="relative">
+                          <Palette className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input id="corners-dot-color" type="color" value={options.cornersDotOptions?.color} onChange={(e) => onCornersOptionsChange('cornersDotOptions', 'color', e.target.value)} className="pl-10" />
+                      </div>
+                  </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
