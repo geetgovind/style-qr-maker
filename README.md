@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/91d29441-07c9-4458-8e52-984d5f5a90fa
+**URL**: (https://geetgovind.github.io/style-qr-maker/)
 
 ## How can I edit this code?
 
